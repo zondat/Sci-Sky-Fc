@@ -6,3 +6,4 @@ This is UML design, i.e., static design.
 <img width="9252" height="5390" alt="flightcontroller class diagram" src="https://github.com/user-attachments/assets/9f536c75-401d-4090-a3d7-66743c7178a1" />
 This is dynamic behavior, based on AADL notation.
 <img width="1244" height="444" alt="design_4" src="https://github.com/user-attachments/assets/7c2af746-419a-4ac6-913f-aa2d1feec2d2" />
+The first version is using esp32c3 supermini with MPU6500 via SPI, with CrossFire Rx via UART1.
