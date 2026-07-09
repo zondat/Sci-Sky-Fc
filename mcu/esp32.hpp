@@ -1,6 +1,6 @@
 #pragma once
 #include "../mcu.hpp"
-#include "config.h"
+#include "../config.h"
 #include <ESP32Servo.h>
 
 class Esp32 : public MCU {

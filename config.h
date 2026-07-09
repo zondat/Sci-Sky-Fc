@@ -1,9 +1,10 @@
 #pragma once
 
-#ifndef CONFIG_H
-  #define CONFIG_H
-
 #include <Arduino.h>
+
+#if defined(ARDUINO_ARCH_NRF52)
+  #include <Adafruit_TinyUSB.h>
+#endif
 
 // Radio link
 #define IBUS_PROTOCOL_CHANNELS  14
@@ -19,18 +20,18 @@
 // MCU
 #define NB_PWM_CHN              5
 
-#define PIN_THR                 9
-#define PIN_PITCH               8
-#define PIN_AIL_1               0
-#define PIN_AIL_2               3
-
-#define PIN_MOSI                4
-#define PIN_MISO                5
+#define PIN_THR                 17
+#define PIN_PITCH               16
+#define PIN_AIL_1               15
+#define PIN_AIL_2               14
+             
+#define PIN_MOSI                4                       
+#define PIN_MISO                3
 #define PIN_SCK                 2
-#define PIN_SS                  10
+#define PIN_SS                  5
 
-#define PIN_TX                  -1
-#define PIN_RX                  20
+#define PIN_TX                  -1                        
+#define PIN_RX                  20                        
 
 // Task config
 #define DISPATCHER_STACK_SIZE   2048
@@ -83,5 +84,3 @@
 #define deg_to_rad              0.0174532925199f
 
 #define DEBUG                   1
-
-#endif

@@ -16,7 +16,6 @@ void controlFlight(void *pvParameters);
 void imuUpdate(void *pvParameters) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   const TickType_t xPeriod = pdMS_TO_TICKS(IMU_UPDATE_INTERVAL_MS);
-  Serial.println("imuUpdate()");
   
   for (;;) {
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
@@ -44,8 +43,10 @@ void controlFlight(void *pvParameters) {
 
 void setup() {
   if (DEBUG) {
-    Serial.begin(115200);
-    delay(1000);
+    while (!Serial) {
+      Serial.begin(115200);
+      delay(200);
+    }
     Serial.println("Serial ok");
   }
 

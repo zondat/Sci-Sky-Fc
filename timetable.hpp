@@ -1,51 +1,57 @@
+#pragma once
+
+#if defined(NRF52840_XXAA)
+  #include <FreeRTOS.h>
+  #include <task.h>
+  #include <semphr.h>
+#endif
+
 class TimeTable {
+protected:
+  SemaphoreHandle_t semWakeup = xSemaphoreCreateBinary();   
+  SemaphoreHandle_t semElapsedTime = xSemaphoreCreateBinary();   
+  uint32_t lastWakeupUs = 0;
+  uint32_t elapsedTimeUs = 0;
+
 public:
   TimeTable(uint32_t lwu = 0, uint32_t dt = 0) {
-    lastWakeup = lwu;
-    elapsedTimeMs = dt;
+    lastWakeupUs = lwu;
+    elapsedTimeUs = dt;
     semWakeup = xSemaphoreCreateBinary();   
     semElapsedTime = xSemaphoreCreateBinary();  
     xSemaphoreGive(semWakeup);
     xSemaphoreGive(semElapsedTime);
   }
 
-  uint32_t getLastWakeup() volatile {
+  uint32_t getLastWakeupUs() volatile {
     uint32_t val = -1;
     if (xSemaphoreTake(semWakeup, portMAX_DELAY) == pdTRUE) {
-      val = lastWakeup;
+      val = lastWakeupUs;
       xSemaphoreGive(semWakeup);
     }
     return val;
   }
 
-  void setLastWakeup(uint32_t value) volatile {
+  void setLastWakeupUs(uint32_t value) volatile {
     if (xSemaphoreTake(semWakeup, portMAX_DELAY) == pdTRUE) {
-      lastWakeup = value;
+      lastWakeupUs = value;
       xSemaphoreGive(semWakeup);
     }    
   }
 
-  uint32_t getElapsedTimeMs() volatile {
+  uint32_t getElapsedTimeUs() volatile {
     uint32_t val = -1;
     if (xSemaphoreTake(semElapsedTime, portMAX_DELAY) == pdTRUE) {
-      val = elapsedTimeMs;
+      val = elapsedTimeUs;
       xSemaphoreGive(semElapsedTime);
     }
     return val;
   }
 
-  void setElapsedTimeMs(uint32_t value) volatile {
+  void setElapsedTimeUs(uint32_t value) volatile {
     if (xSemaphoreTake(semElapsedTime, portMAX_DELAY) == pdTRUE) {
-      elapsedTimeMs = value;
+      elapsedTimeUs = value;
       xSemaphoreGive(semElapsedTime);  
     }      
   }
-
-protected:
-  #ifdef ARDUINO_ARCH_ESP32
-    SemaphoreHandle_t semWakeup = xSemaphoreCreateBinary();   
-    SemaphoreHandle_t semElapsedTime = xSemaphoreCreateBinary();   
-  #endif
-  uint32_t lastWakeup = 0;
-  uint32_t elapsedTimeMs = 0;
 };

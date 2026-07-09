@@ -8,14 +8,12 @@ class NRF24 : public RadioLink {
 protected:
   RF24 *radio = nullptr;
   uint8_t ce, csn, pipe = 1;
-  RfMessage *rfMess = nullptr;
  
   
 public:
-  NRF24(uint8_t ce, uint8_t csn, RfMessage *rfMess) : RadioLink() {
+  NRF24(uint8_t ce, uint8_t csn) : RadioLink() {
 	this->ce = ce;
 	this->csn = csn;
-	this->rfMess = rfMess;
   }
   
   virtual ~NRF24() {

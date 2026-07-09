@@ -1,26 +1,27 @@
 #include "fc.hpp"
 
-#ifdef ARDUINO_ARCH_ESP32
-// ========== HANDLE CỦA CÁC TASK ==========
-// TaskHandle_t imuUpdateTaskHandle = NULL;
-// TaskHandle_t rxUpdateTaskHandle = NULL;
-// TaskHandle_t controlFlightTaskHandle = NULL;
+// #include "mcu/esp32.hpp"
+#include "mcu/nrf52.hpp"
 
-// ========== SEMAPHORE ==========
-SemaphoreHandle_t semControlFlight = xSemaphoreCreateBinary();
+#if defined(ARDUINO_ARCH_NRF52)
+  #include <FreeRTOS.h>
+  #include <task.h>
+  #include <semphr.h>
 #endif
 
-Fc::Fc() {
-  if (DEBUG) Serial.begin(115200);
+// ========== SEMAPHORE ========== //
+SemaphoreHandle_t semControlFlight = xSemaphoreCreateBinary();
 
-  mcu = new Esp32();
+Fc::Fc() {
+  mcu = new NRF52(); 
+  // mcu = new Esp32();
   imu = new MPU6500(PIN_MISO, PIN_MOSI, PIN_SCK, PIN_SS, -1);
 
-  Serial1.begin(115200, SERIAL_8N1, PIN_RX, PIN_TX);
-  rx = new CRSF(&Serial1);
-  currentRxMess = new RfMessage();
-  // rx = new RFLite(PIN_SCK, PIN_MOSI, PIN_MISO, 0, 1, currentRxMess, 0, true);
-
+  // Serial1.begin(115200, SERIAL_8N1, PIN_RX, PIN_TX);
+  // rx = new CRSF(&Serial1);
+  // rx = new RFLite(PIN_SCK, PIN_MOSI, PIN_MISO, 0, 1, 0, true);
+  rx = new Nrf2Nrf();
+  
   armed = new Armed(this);
   disarmed = new Disarmed(this);
   currentState = disarmed;
@@ -51,17 +52,17 @@ Fc::~Fc() {
 bool Fc::setup() {
   if (!mcu || !imu || !altEstimator || !rx) return false;
 
+  if (!rx->setup()) return false;
   if (motor) motor->setup();
   if (servoPitch) servoPitch->setup();
   if (servoAileron_1) servoAileron_1->setup();
   if (servoAileron_2) servoAileron_2->setup();
   if (mode) mode->setup();
-
   if (!mcu->setup()) return false;
   if (!imu->setup()) return false;
   if (!altEstimator->setup()) return false;
-  if (!rx->setup()) { if (DEBUG) Serial.println("Rx failed"); delay(1000);return false;}
-  
+
+  delay(500);
   return true;
 }
 
@@ -81,12 +82,12 @@ void Fc::imuUpdate() {
   imu->update();
 
   // Check to trigger control flight
-  uint32_t currentTime = micros();
-  uint32_t elapsedTime = currentTime - timeTable.getLastWakeup();
-  if (elapsedTime > CONTROL_INTERVAL_US - TRIGGER_JITTER_US
-      && elapsedTime < CONTROL_INTERVAL_US + TRIGGER_JITTER_US) {
-    timeTable.setLastWakeup(currentTime);
-    timeTable.setElapsedTimeMs(elapsedTime);
+  uint32_t currentTimeUs = micros();
+  uint32_t elapsedTimeUs = currentTimeUs - timeTable.getLastWakeupUs();
+  if (elapsedTimeUs > CONTROL_INTERVAL_US - TRIGGER_JITTER_US
+      && elapsedTimeUs < CONTROL_INTERVAL_US + TRIGGER_JITTER_US) {
+    timeTable.setLastWakeupUs(currentTimeUs);
+    timeTable.setElapsedTimeUs(elapsedTimeUs);
     xSemaphoreGive(semControlFlight);  // trigger control flight task
   }
 }
@@ -99,14 +100,15 @@ void Fc::rxUpdate() {
   else setStateDisarmed();
 
   // Update new signal
-  for (int i = 0; i < rx->getNbChannels(); i++) {
-    currentRxMess->channels[i] = rx->getChannel(i);    
-  }
+  // for (int i = 0; i < rx->getNbChannels(); i++) {
+  //   currentRxMess->channels[i] = rx->getChannel(i);    
+  // }
+  if (DEBUG) Serial.println("Chn1: " + String( rx->getChannel(1)) + ", Chn2: " + String( rx->getChannel(2)) + ", Chn3: " + String( rx->getChannel(3)));
 
   // Trigger control
-  uint32_t currentTime = micros();
-  timeTable.setElapsedTimeMs(currentTime - timeTable.getLastWakeup());
-  timeTable.setLastWakeup(currentTime);
+  uint32_t currentTimeUs = micros();
+  timeTable.setElapsedTimeUs(currentTimeUs - timeTable.getLastWakeupUs());
+  timeTable.setLastWakeupUs(currentTimeUs);
   xSemaphoreGive(semControlFlight);  // Trigger task ControlFlight()
 }
 
@@ -116,7 +118,7 @@ void Fc::controlFlight() {
                      rx->getChannel(CHN_AILERON),
                      rx->getChannel(CHN_ELEVATOR),
                      rx->getChannel(CHN_RUDDER),
-                     ((float)(timeTable.getElapsedTimeMs())) * 1e-6);
+                     ((float)(timeTable.getElapsedTimeUs())) * 1e-6);
 
     // Serial.println("CmdRoll: " + String(cmdRoll));
     // delay(100);
@@ -132,20 +134,32 @@ void Fc::controlFlight() {
 //   rx = new Ibus(hwSerial);
 // }
 
-void Fc::createRxNRF24(uint8_t ce, uint8_t csn, RfMessage *rfMess) {
-  rx = new NRF24(ce, csn, rfMess);
+void Fc::createRxNrf2Nrf() {
+  #if defined(ARDUINO_ARCH_NRF52)
+    rx = new Nrf2Nrf();    
+  #endif  
 }
 
-void Fc::createRxNRFLite(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t ce, uint8_t csn, RfMessage *rfMess, uint8_t RADIO_ID, bool alreadyInitSPI) {
-  rx = new RFLite(sck, mosi, miso, ce, csn, rfMess, RADIO_ID, alreadyInitSPI);
+void Fc::createRxNRF24(uint8_t ce, uint8_t csn) {
+  rx = new NRF24(ce, csn);
+}
+
+void Fc::createRxNRFLite(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t ce, uint8_t csn, uint8_t radioId, bool alreadyInitSPI) {
+  #if !defined(ARDUINO_ARCH_NRF52)
+    rx = new RFLite(sck, mosi, miso, ce, csn, radioId, alreadyInitSPI);    
+  #endif  
 }
 
 void Fc::createRxCrsf(HardwareSerial* hwSerial) {
-  rx = new CRSF(hwSerial);
+  #if !defined(ARDUINO_ARCH_NRF52)
+    rx = new CRSF(hwSerial);    
+  #endif  
 }
 
 void Fc::createRxSbus(HardwareSerial* hwSerial) {
-  rx = new Sbus(hwSerial);
+  #if !defined(NRF52840_XXAA)
+    rx = new Sbus(hwSerial);    
+  #endif    
 }
 
 void Fc::createMpu6050(uint8_t miso, uint8_t mosi, uint8_t sck, uint8_t cs, uint8_t irPin) {

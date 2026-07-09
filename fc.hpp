@@ -3,12 +3,16 @@
 #include "config.h"
 #include "mode.hpp"
 
-#include "radiolink/crsf.hpp"
+#if !defined(ARDUINO_ARCH_NRF52)
+  #include "radiolink/sbus.hpp"
+  #include "radiolink/nrflite.hpp"    
+  #include "radiolink/crsf.hpp"
 // #include "radiolink/ibus.hpp"
-#include "radiolink/sbus.hpp"
-#include "radiolink/nrflite.hpp"
+#else
+  #include "radiolink/nrf2nrf.hpp"
+#endif
 #include "radiolink/nrf24.hpp"
- 
+
 #include "servo.hpp"
 #include "esc/brushed.hpp"
 #include "esc/standard.hpp"
@@ -24,7 +28,6 @@
 #include "state.hpp"
 
 #include "mcu.hpp"
-#include "mcu/esp32.hpp"
 
 #include "timetable.hpp"
 
@@ -57,8 +60,9 @@ public:
   // void createRxIbus(HardwareSerial* hwSerial);
   void createRxCrsf(HardwareSerial* hwSerial);
   void createRxSbus(HardwareSerial* hwSerial);
-  void createRxNRF24(uint8_t ce, uint8_t csn, RfMessage *rfMess);
-  void createRxNRFLite(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t ce, uint8_t csn, RfMessage *rfMess, uint8_t RADIO_ID, bool alreadyInitSPI = false);
+  void createRxNrf2Nrf();
+  void createRxNRF24(uint8_t ce, uint8_t csn);
+  void createRxNRFLite(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t ce, uint8_t csn, uint8_t radioId, bool alreadyInitSPI = false);
 
   void createBruteAltEstimator() {altEstimator = new Brute();}
 
