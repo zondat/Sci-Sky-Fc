@@ -99,10 +99,7 @@ void Fc::rxUpdate() {
   if (rx->getChannel(CHN_ARM) > 1200) setStateArmed(); 
   else setStateDisarmed();
 
-  // Update new signal
-  // for (int i = 0; i < rx->getNbChannels(); i++) {
-  //   currentRxMess->channels[i] = rx->getChannel(i);    
-  // }
+  //Update new signal
   if (DEBUG) Serial.println("Chn1: " + String( rx->getChannel(1)) + ", Chn2: " + String( rx->getChannel(2)) + ", Chn3: " + String( rx->getChannel(3)));
 
   // Trigger control

@@ -40,7 +40,6 @@ protected:
   AltEstimator* altEstimator = nullptr;
   Actuator* motor = nullptr, *servoAileron_1 = nullptr, *servoAileron_2 = nullptr, *servoPitch = nullptr;
   State *armed = nullptr, *disarmed = nullptr, *currentState = nullptr;
-  RfMessage* currentRxMess;
 
   volatile TimeTable timeTable;
   uint16_t cmdRoll = 0, cmdPitch = 0, cmdYaw = 0; 
